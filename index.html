@@ -3,6 +3,9 @@
   <head>
     <title>Sistem Diagnosa Gangguan Tidur & Mental</title>
 
+    <!-- TAMBAHAN AGAR RESPONSIVE -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
       body {
         font-family: "Segoe UI", Arial;
@@ -11,7 +14,8 @@
       }
 
       .container {
-        width: 550px;
+        width: 100%;
+        max-width: 550px;
         margin: auto;
       }
 
@@ -112,6 +116,28 @@
         white-space: pre-wrap;
         border: 1px solid #ead6a5;
       }
+
+      /* TAMBAHAN RESPONSIVE HP */
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+        }
+
+        .card {
+          padding: 15px;
+        }
+
+        h2 {
+          font-size: 18px;
+        }
+
+        select,
+        input,
+        button {
+          font-size: 14px;
+          padding: 8px;
+        }
+      }
     </style>
   </head>
 
@@ -168,7 +194,6 @@
 <option value="0.8">Yakin (0.8)</option>
 <option value="1">Sangat Yakin (1)</option>`;
 
-      // Generate pertanyaan
       let html = "";
       for (let i = 0; i < 10; i++) {
         html += `<p style="margin-top:15px;"><b>G0${i + 1}</b>: ${pertanyaanList[i]}</p>
