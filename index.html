@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Diagnosa Gangguan Tidur & Mental</title>
+
+<style>
+body {
+    font-family: "Segoe UI", Arial;
+    background: linear-gradient(135deg, #eef2f7, #d9e4f5);
+    padding: 10px;
+    margin: 0;
+}
+
+.container {
+    max-width: 550px;
+    width: 100%;
+    margin: auto;
+}
+
+.header {
+    background: #007bff;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    border-radius: 12px 12px 0 0;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+select, input, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+button {
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-hasil { background: #28a745; }
+.btn-simpan { background: #dc3545; }
+
+.result {
+    margin-top: 20px;
+    background: #e9f7ef;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.progress {
+    background: #ddd;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 20px;
+    background: linear-gradient(90deg, #007bff, #00c6ff);
+    color: white;
+    text-align: center;
+    font-size: 12px;
+}
+
+.loading {
+    text-align: center;
+    color: #007bff;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* LAPORAN */
+.lampiran-box {
+    margin-top: 15px;
+    font-family: monospace;
+    font-size: 11px;
+    background: #fff8dc;
+    padding: 10px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    border: 1px solid #ead6a5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="header"><h2>Sistem Pakar Diagnosa CF</h2></div>
+    <div class="card">
+
+        <input type="text" id="nama" placeholder="Nama Pasien">
+
+        <div id="pertanyaan"></div>
+
+        <button class="btn-hasil" id="btnDiagnosa" onclick="diagnosa()">Lihat Hasil</button>
+        <button class="btn-simpan" onclick="simpan()">Simpan Data</button>
+
+        <div id="loading"></div>
+        <div id="hasil"></div>
+
+    </div>
+</div>
+
+<script>
+const bobotPakar = { g1:0.6, g2:0.6, g3:0.8, g4:0.4, g5:0.7, g6:0.5, g7:0.6, g8:0.4, g9:0.5, g10:0.3 };
+
+const penyakit = { 
+    insomnia: ["g1","g2","g4"], 
+    apnea: ["g3","g5"], 
+    anxiety: ["g6","g7","g8","g9"] 
+};
+
+const pertanyaanList = [
+"Sulit tidur","Sering terbangun","Mendengkur","Lelah saat bangun",
+"Sesak saat tidur","Jantung berdebar","Cemas berlebihan",
+"Sulit fokus","Gelisah","Berkeringat malam"
+];
+
+const opsi = `
+<option value="0">Tidak</option>
+<option value="0.2">Tidak Tahu</option>
+<option value="0.4">Sedikit</option>
+<option value="0.6">Cukup</option>
+<option value="0.8">Yakin</option>
+<option value="1">Sangat Yakin</option>`;
+
+/* GENERATE */
+let html="";
+for(let i=0; i<10; i++){
+    html += `<p><b>G0${i+1}</b>: ${pertanyaanList[i]}</p>
+             <select id="g${i+1}">${opsi}</select>`;
+}
+document.getElementById("pertanyaan").innerHTML = html;
+
+let hasilAkhir="", persenAkhir="", laporanLengkap="";
+
+/* HITUNG CF DETAIL */
+function hitungCF(list) {
+    let cfList = [], detail = "";
+
+    list.forEach(g => {
+        let user = parseFloat(document.getElementById(g).value);
+        if(user > 0) {
+            let cf = bobotPakar[g] * user;
+            cfList.push(cf);
+            detail += `${g.toUpperCase()} = ${bobotPakar[g]} x ${user} = ${cf.toFixed(4)}\n`;
+        }
+    });
+
+    if(cfList.length == 0) return { cf: 0, det: "Tidak ada gejala\n" };
+
+    let combine = cfList[0];
+    detail += `\nCF Awal = ${combine.toFixed(4)}\n`;
+
+    for(let i = 1; i < cfList.length; i++) {
+        let old = combine;
+        combine = old + cfList[i] * (1 - old);
+        detail += `Combine ${i}: ${old.toFixed(4)} + ${cfList[i].toFixed(4)}*(1-${old.toFixed(4)}) = ${combine.toFixed(4)}\n`;
+    }
+
+    return { cf: combine, det: detail };
+}
+
+/* DIAGNOSA */
+function diagnosa() {
+
+    let namaUser = document.getElementById("nama").value;
+    if(!namaUser){
+        alert("Isi nama pasien dulu!");
+        return;
+    }
+
+    document.getElementById("loading").innerHTML = "⏳ Memproses...";
+    document.getElementById("btnDiagnosa").disabled = true;
+
+    setTimeout(() => {
+
+        let res = {
+            insomnia: hitungCF(penyakit.insomnia),
+            apnea: hitungCF(penyakit.apnea),
+            anxiety: hitungCF(penyakit.anxiety)
+        };
+
+        let persen = {
+            insomnia: res.insomnia.cf*100,
+            apnea: res.apnea.cf*100,
+            anxiety: res.anxiety.cf*100
+        };
+
+        let max = 0, namaKey = "";
+        for(let p in persen){
+            if(persen[p] > max){
+                max = persen[p];
+                namaKey = p;
+            }
+        }
+
+        if(namaKey == "insomnia") hasilAkhir = "Insomnia";
+        else if(namaKey == "apnea") hasilAkhir = "Sleep Apnea";
+        else if(namaKey == "anxiety") hasilAkhir = "Anxiety Disorder";
+        else hasilAkhir = "Normal";
+
+        persenAkhir = max.toFixed(2);
+
+        /* LAPORAN LENGKAP */
+        laporanLengkap = 
+`=== INSOMNIA ===
+${res.insomnia.det}
+=== SLEEP APNEA ===
+${res.apnea.det}
+=== ANXIETY ===
+${res.anxiety.det}
+
+HASIL AKHIR: ${hasilAkhir} (${persenAkhir}%)`;
+
+        document.getElementById("loading").innerHTML = "";
+        document.getElementById("btnDiagnosa").disabled = false;
+
+        document.getElementById("hasil").innerHTML = `
+        <div class="result">
+            <h3>Hasil: ${hasilAkhir} (${persenAkhir}%)</h3>
+
+            <div>Insomnia</div>
+            <div class="progress"><div class="progress-bar" style="width:${persen.insomnia}%">${persen.insomnia.toFixed(0)}%</div></div>
+
+            <div>Sleep Apnea</div>
+            <div class="progress"><div class="progress-bar" style="width:${persen.apnea}%">${persen.apnea.toFixed(0)}%</div></div>
+
+            <div>Anxiety</div>
+            <div class="progress"><div class="progress-bar" style="width:${persen.anxiety}%">${persen.anxiety.toFixed(0)}%</div></div>
+
+            <div class="lampiran-box">${laporanLengkap}</div>
+
+            <p style="font-size:11px;color:#888;">
+            Hasil ini hanya simulasi, bukan diagnosis medis resmi.
+            </p>
+        </div>`;
+    }, 800);
+}
+
+/* SIMPAN */
+function simpan() {
+
+    let namaUser = document.getElementById("nama").value;
+    if(!namaUser || !persenAkhir){
+        alert("Isi & diagnosa dulu!");
+        return;
+    }
+
+    let data = {
+        nama: namaUser,
+        hasil: hasilAkhir,
+        persen: persenAkhir + "%",
+        laporan: laporanLengkap
+    };
+
+    fetch("https://script.google.com/macros/s/AKfycbzqQg4WzqiJIY74gdjekSiW_XLYpl2KjrPHxRV97JuekA6eMfSGu9DsLPyVyZD6uA50mg/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(data)
+    })
+    .then(() => alert("Data tersimpan!"))
+    .catch(() => alert("Gagal simpan!"));
+}
+</script>
+
+</body>
+</html>
